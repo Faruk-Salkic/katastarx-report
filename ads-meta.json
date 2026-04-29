@@ -1,7 +1,17 @@
 {
+  "ads": [],
   "summary": {
-    "total_ads": 13,
-    "last_updated": "2026-04-29T10:17:29.368Z"
-  },
-  "total_ads": 13
+    "total_ads": 0,
+    "total_spend": 0,
+    "total_followers": 0,
+    "total_reach": 0,
+    "total_impressions": 0,
+    "total_clicks": 0,
+    "avg_cpf": null,
+    "avg_cpc": null,
+    "avg_cpv": null,
+    "best_cpf": null,
+    "best_ad_name": null,
+    "last_updated": null
+  }
 }
