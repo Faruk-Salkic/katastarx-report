@@ -306,8 +306,13 @@ function renderTop3() {
   var section = document.getElementById('top3-section');
   var grid    = document.getElementById('top3-grid');
   if (!section || !grid) return;
-  var eligible = allAds.filter(function(a){ return a.followers > 0 && a.cpf != null; });
-  eligible.sort(function(a, b){ return a.cpf - b.cpf; });
+  var eligible = allAds.filter(function(a){
+    return a.cpf != null && a.cpf > 0 &&
+           a.followers >= 50 &&
+           a.spend >= 5 &&
+           !/video/i.test(a.name || '');
+  });
+  eligible.sort(function(a, b){ return b.followers - a.followers; });
   var top = eligible.slice(0, 3);
   if (top.length === 0) { section.style.display = 'none'; return; }
   var medals = ['🥇', '🥈', '🥉'];
