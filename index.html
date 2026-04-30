@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>KatastarX — Campaign Intelligence Report</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
 <style>
 :root {
   --blue: #1B4FFF;
@@ -116,6 +117,23 @@ body { background:var(--dark); color:var(--text); font-family:'Inter',sans-serif
 .top3-followers strong { color:var(--text); }
 .top3-spend { font-size:10px; color:var(--muted2); }
 @media(max-width:600px){ .top3-grid { flex-direction:column; } .top3-card { width:100%; } }
+
+/* CHART */
+@keyframes fadeIn { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
+.chart-section { margin-bottom:52px; animation:fadeIn 0.4s ease forwards; }
+.chart-wrap { height:300px; background:#0d0d1a; border:1px solid var(--border); border-radius:18px; padding:20px; }
+@media(max-width:600px){ .chart-wrap { overflow-x:auto; } .chart-wrap canvas { min-width:500px; } }
+
+/* ALOOWEB BANNER */
+.alooweb-banner { background:#0d0d1a; border-left:3px solid #F5C542; border-radius:12px; padding:20px 24px; margin-bottom:52px; display:flex; align-items:center; justify-content:space-between; gap:24px; animation:fadeIn 0.4s ease forwards; }
+.alooweb-text { flex:1; min-width:0; }
+.alooweb-label { font-size:11px; letter-spacing:2px; text-transform:uppercase; color:#F5C542; font-weight:700; margin-bottom:10px; }
+.alooweb-heading { font-size:18px; font-weight:700; color:#E4E4F0; margin-bottom:10px; line-height:1.4; }
+.alooweb-body { font-size:14px; color:#8888A0; line-height:1.8; }
+.alooweb-body strong { color:#E4E4F0; }
+.alooweb-footer { font-size:11px; color:#5A5A72; margin-top:12px; font-style:italic; }
+.alooweb-badge { width:64px; height:64px; background:rgba(245,197,66,0.1); border:2px solid #F5C542; border-radius:14px; display:flex; align-items:center; justify-content:center; font-size:22px; font-weight:900; color:#F5C542; flex-shrink:0; letter-spacing:-1px; font-family:'Inter',sans-serif; }
+@media(max-width:600px){ .alooweb-banner { flex-direction:column; align-items:flex-start; } .alooweb-badge { display:none; } }
 
 /* INSIGHTS */
 .insights { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; margin-bottom:52px; }
@@ -302,6 +320,143 @@ function dash(val) {
   return val;
 }
 
+function renderChart() {
+  var section = document.getElementById('chart-section');
+  if (!section) return;
+  var eligible = allAds.filter(function(a){ return a.followers > 0 && a.spend > 5; });
+  eligible.sort(function(a, b){ return b.followers - a.followers; });
+  if (eligible.length === 0) { section.style.display = 'none'; return; }
+  chartAds = eligible;
+  section.style.display = '';
+
+  var labels    = eligible.map(function(a){ return (a.name || '').slice(0, 14); });
+  var followers = eligible.map(function(a){ return a.followers || 0; });
+  var spends    = eligible.map(function(a){ return +Number(a.spend || 0).toFixed(2); });
+
+  var canvas = document.getElementById('perf-chart');
+  if (!canvas) return;
+  var ctx = canvas.getContext('2d');
+  if (perfChart) { perfChart.destroy(); perfChart = null; }
+
+  perfChart = new Chart(ctx, {
+    data: {
+      labels: labels,
+      datasets: [
+        {
+          type: 'bar',
+          label: 'Pratitelji',
+          data: followers,
+          backgroundColor: '#F5C542',
+          borderRadius: 4,
+          yAxisID: 'yLeft',
+          order: 2
+        },
+        {
+          type: 'line',
+          label: 'Potrošnja (€)',
+          data: spends,
+          borderColor: '#FF6B35',
+          backgroundColor: 'rgba(255,107,53,0.1)',
+          borderWidth: 2,
+          pointBackgroundColor: '#FF6B35',
+          pointRadius: 4,
+          tension: 0.3,
+          fill: false,
+          yAxisID: 'yRight',
+          order: 1
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: { duration: 600 },
+      plugins: {
+        legend: {
+          position: 'top',
+          labels: { color: '#E4E4F0', font: { size: 11, family: 'Inter' }, boxWidth: 14, padding: 16 }
+        },
+        tooltip: {
+          backgroundColor: '#0F0F1A',
+          borderColor: 'rgba(255,255,255,0.1)',
+          borderWidth: 1,
+          titleColor: '#E4E4F0',
+          bodyColor: '#8888A0',
+          padding: 12,
+          callbacks: {
+            title: function(items) {
+              var ad = chartAds[items[0].dataIndex];
+              return ad ? (ad.name || '') : '';
+            },
+            afterBody: function(items) {
+              var ad = chartAds[items[0].dataIndex];
+              if (!ad) return [];
+              return [
+                'Pratitelji: ' + (ad.followers || 0),
+                'Potrošnja: €' + Number(ad.spend || 0).toFixed(2),
+                'CPF: ' + (ad.cpf != null ? '€' + ad.cpf.toFixed(3) : '—')
+              ];
+            }
+          }
+        }
+      },
+      scales: {
+        x: {
+          grid: { color: 'rgba(255,255,255,0.07)' },
+          ticks: { color: '#8888A0', font: { size: 11 } }
+        },
+        yLeft: {
+          position: 'left',
+          grid: { color: 'rgba(255,255,255,0.07)' },
+          ticks: { color: '#8888A0', font: { size: 11 } },
+          title: { display: true, text: 'Pratitelji', color: '#F5C542', font: { size: 11 } }
+        },
+        yRight: {
+          position: 'right',
+          grid: { drawOnChartArea: false },
+          ticks: { color: '#8888A0', font: { size: 11 }, callback: function(v){ return '€' + v; } },
+          title: { display: true, text: 'Potrošnja (€)', color: '#FF6B35', font: { size: 11 } }
+        }
+      },
+      onClick: function(event, elements) {
+        if (!elements || elements.length === 0) return;
+        var ad = chartAds[elements[0].index];
+        if (!ad) return;
+        var card = document.querySelector('[data-ad-id="' + String(ad.ad_id) + '"]');
+        if (!card) return;
+        card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        card.style.transition = 'box-shadow 0.2s';
+        card.style.boxShadow = '0 0 0 3px #F5C542, 0 0 24px rgba(245,197,66,0.4)';
+        setTimeout(function(){ card.style.boxShadow = ''; }, 2000);
+      }
+    }
+  });
+}
+
+function renderAlooBanner() {
+  var banner = document.getElementById('alooweb-banner');
+  if (!banner) return;
+  var paidAds = allAds.filter(function(a){ return a.followers > 0 && a.spend > 5 && a.cpf != null; });
+  if (paidAds.length === 0) { banner.style.display = 'none'; return; }
+
+  var avg_cpf = paidAds.reduce(function(s, a){ return s + a.cpf; }, 0) / paidAds.length;
+  var industryAvg = 0.55;
+  var betterByPct = Math.round((industryAvg - avg_cpf) / industryAvg * 100);
+  var bestAd = paidAds.slice().sort(function(a, b){ return a.cpf - b.cpf; })[0];
+
+  var heading = betterByPct > 0
+    ? 'Kampanja je <strong>' + betterByPct + '%</strong> efikasnija od tržišnog prosjeka.'
+    : 'Kampanja je u skladu s tržišnim prosjekom.';
+
+  document.getElementById('aw-heading').innerHTML = heading;
+  document.getElementById('aw-body').innerHTML =
+    'Prosječna cijena po pratitelju: <strong>€' + avg_cpf.toFixed(2) + '</strong> · Industrijski prosjek za nekretnine: <strong>€' + industryAvg.toFixed(2) + '</strong><br>' +
+    'Najbolji oglas: <strong>' + (bestAd.name || '—').replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</strong> s <strong>€' + bestAd.cpf.toFixed(3) + '/pratitelju</strong> i <strong>' + (bestAd.followers || 0) + ' pratitelja</strong>.<br>' +
+    '<strong>Preporuka: Pokrenite 3–4 nova oglasa u formatu pobjednika s €10/dan na 48h za maksimalni ROI.</strong>';
+
+  banner.style.display = '';
+}
+
 function renderTop3() {
   var section = document.getElementById('top3-section');
   var grid    = document.getElementById('top3-grid');
@@ -356,6 +511,8 @@ let allAds       = [];
 let activeStatus = 'all';
 let activeSort   = 'newest';
 let selectedAds  = [];
+let perfChart    = null;
+let chartAds     = [];
 
 /* ── Filter + sort ─────────────────────────────────────────────────────── */
 function applyFiltersAndSort() {
@@ -646,6 +803,8 @@ document.addEventListener('DOMContentLoaded', function () {
         showEmptyState();
       } else {
         allAds = ads;
+        renderChart();
+        renderAlooBanner();
         renderTop3();
         renderInsights(summary, ads);
         applyFiltersAndSort();
@@ -708,6 +867,23 @@ document.addEventListener('DOMContentLoaded', function () {
   <div class="top3-section" id="top3-section" style="display:none;">
     <h2 class="section-title" style="margin-bottom:20px;">&#x1F3C6; Top 3 reklame po CPF-u</h2>
     <div class="top3-grid" id="top3-grid"></div>
+  </div>
+
+  <div class="chart-section" id="chart-section" style="display:none;">
+    <h2 class="section-title" style="margin-bottom:20px;">&#x1F4CA; Performanse kampanje</h2>
+    <div class="chart-wrap">
+      <canvas id="perf-chart"></canvas>
+    </div>
+  </div>
+
+  <div class="alooweb-banner" id="alooweb-banner" style="display:none;">
+    <div class="alooweb-text">
+      <div class="alooweb-label">AlooWeb Intelligence</div>
+      <div class="alooweb-heading" id="aw-heading">—</div>
+      <div class="alooweb-body" id="aw-body">—</div>
+      <div class="alooweb-footer">AlooWeb Performance Intelligence &middot; Automatska analiza na temelju Meta Ads podataka</div>
+    </div>
+    <div class="alooweb-badge">AW</div>
   </div>
 
   <h2 class="section-title" style="margin-bottom:28px;">Ključni nalazi</h2>
