@@ -300,7 +300,7 @@ function buildCard(ad) {
   return (
     '<div class="ad-card">' +
       '<div class="ad-img-wrap">' +
-        '<img src="' + imgSrc + '" alt="' + ad.name + '" loading="lazy" onerror="this.parentElement.style.background='#1a1a2e';this.style.display='none'">' +
+        '<img src="' + imgSrc + '" alt="' + (ad.name || '').replace(/"/g, '&quot;') + '" loading="lazy">' +
         '<div class="status-badge ' + st.cls + '"><span class="status-dot"></span>' + st.label + '</div>' +
       '</div>' +
       '<div class="ad-body">' +
