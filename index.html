@@ -790,23 +790,55 @@ document.addEventListener('DOMContentLoaded', function () {
   fetch('ads-meta.json')
     .then(res => { if (!res.ok) throw new Error('HTTP ' + res.status); return res.json(); })
     .then(data => {
-      const summary = data.summary || {};
-      const ads     = data.ads     || [];
+      const rawSummary = data.summary || {};
+
+      const EXCLUDED_ADS = [
+        "Komentar",
+        "New Traffic Ad",
+        "followers-ad1",
+        "subscribe-ad2",
+        "subscribe-ad1",
+        "KatastarX - Emocionalni - Ožujak 2026",
+        "Beitrag"
+      ];
+
+      allAds = (data.ads || []).filter(ad =>
+        !EXCLUDED_ADS.some(excluded =>
+          ad.name && ad.name.toLowerCase().includes(excluded.toLowerCase())
+        )
+      );
+
+      const totalFollowers   = allAds.reduce((s, a) => s + (a.followers || 0), 0);
+      const totalSpend       = allAds.reduce((s, a) => s + (a.spend || 0), 0);
+      const totalReach       = allAds.reduce((s, a) => s + (a.reach || 0), 0);
+      const totalImpressions = allAds.reduce((s, a) => s + (a.impressions || 0), 0);
+      const withCpf          = allAds.filter(a => a.cpf != null && a.followers > 0);
+      const bestAd           = withCpf.length ? withCpf.reduce((b, a) => a.cpf < b.cpf ? a : b) : null;
+      const summary = {
+        total_ads:         allAds.length,
+        total_followers:   totalFollowers || null,
+        total_spend:       totalSpend || null,
+        avg_cpf:           totalFollowers > 0 && totalSpend > 0 ? totalSpend / totalFollowers : null,
+        total_reach:       totalReach || null,
+        total_impressions: totalImpressions || null,
+        best_cpf:          bestAd ? bestAd.cpf : null,
+        best_ad_name:      bestAd ? bestAd.name : null,
+        last_updated:      rawSummary.last_updated,
+      };
 
       renderHero(summary);
       renderStats(summary);
       renderSectionHead(summary);
       renderFooterSync(summary);
 
-      if (ads.length === 0) {
+      if (allAds.length === 0) {
         renderInsights({}, []);
         showEmptyState();
       } else {
-        allAds = ads;
         renderChart();
         renderAlooBanner();
         renderTop3();
-        renderInsights(summary, ads);
+        renderInsights(summary, allAds);
         applyFiltersAndSort();
       }
     })
